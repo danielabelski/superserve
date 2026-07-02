@@ -2,7 +2,6 @@
 
 import crypto from "node:crypto"
 
-import { getImpersonationTeamId } from "@/lib/admin/impersonation"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createServerClient } from "@/lib/supabase/server"
 
@@ -119,10 +118,7 @@ export async function listApiKeysAction() {
   } = await supabase.auth.getUser()
   if (!user) throw new Error("Not authenticated")
 
-  const impersonatedTeamId = await getImpersonationTeamId(user)
-  const teamId =
-    impersonatedTeamId ??
-    (await getOrCreateTeamForUser(user.id, user.email ?? user.id))
+  const teamId = await getOrCreateTeamForUser(user.id, user.email ?? user.id)
 
   const admin = createAdminClient()
   const { data, error } = await admin
@@ -131,7 +127,6 @@ export async function listApiKeysAction() {
     .eq("team_id", teamId)
     .is("revoked_at", null)
     .neq("name", "__console_proxy__")
-    .neq("name", "__console_impersonation__")
     .order("created_at", { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -151,12 +146,6 @@ export async function createApiKeyAction(name: string) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error("Not authenticated")
-
-  if (await getImpersonationTeamId(user)) {
-    throw new Error(
-      "Read-only: cannot modify API keys while viewing another team.",
-    )
-  }
 
   const teamId = await getOrCreateTeamForUser(user.id, user.email ?? user.id)
 
@@ -198,12 +187,6 @@ export async function revokeApiKeyAction(id: string) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error("Not authenticated")
-
-  if (await getImpersonationTeamId(user)) {
-    throw new Error(
-      "Read-only: cannot modify API keys while viewing another team.",
-    )
-  }
 
   const teamId = await getOrCreateTeamForUser(user.id, user.email ?? user.id)
 
