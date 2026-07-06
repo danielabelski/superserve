@@ -63,9 +63,10 @@
     }
   ],
   "navigation": {
-    "tabs": [
+    "anchors": [
       {
-        "tab": "Documentation",
+        "anchor": "Documentation",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Get Started",
@@ -124,7 +125,8 @@
         ]
       },
       {
-        "tab": "SDK Reference",
+        "anchor": "SDK Reference",
+        "icon": "code",
         "groups": [
           {
             "group": "Reference",
@@ -139,45 +141,8 @@
         ]
       },
       {
-        "tab": "Integration Guides",
-        "groups": [
-          {
-            "group": "MCP",
-            "tag": "NEW",
-            "pages": ["integrations/mcp"]
-          },
-          {
-            "group": "Coding Agents",
-            "pages": [
-              "integrations/coding-agents/claude",
-              "integrations/coding-agents/codex",
-              "integrations/coding-agents/opencode",
-              "integrations/coding-agents/kilocode"
-            ]
-          },
-          {
-            "group": "Personal Agents",
-            "pages": [
-              "integrations/personal-agents/openclaw",
-              "integrations/personal-agents/hermes"
-            ]
-          },
-          {
-            "group": "Managed Agents",
-            "pages": ["integrations/managed-agents/claude-managed-agents"]
-          },
-          {
-            "group": "Agent Harnesses",
-            "pages": [
-              "integrations/agent-harnesses/claude-agent-sdk",
-              "integrations/agent-harnesses/openai-agents-sdk"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "openapi": "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/api/openapi.yaml",
+        "anchor": "REST API",
+        "icon": "server",
         "groups": [
           {
             "group": "Sandboxes",
@@ -248,6 +213,45 @@
               "GET /teams/{team_id}/roles",
               "POST /teams/{team_id}/roles",
               "DELETE /teams/{team_id}/roles/{assignment_id}"
+            ]
+          }
+        ],
+        "openapi": "https://raw.githubusercontent.com/superserve-ai/sandbox/refs/heads/main/api/openapi.yaml"
+      },
+      {
+        "anchor": "Cookbook",
+        "icon": "utensils",
+        "groups": [
+          {
+            "group": "MCP",
+            "tag": "NEW",
+            "pages": ["integrations/mcp"]
+          },
+          {
+            "group": "Coding Agents",
+            "pages": [
+              "integrations/coding-agents/claude",
+              "integrations/coding-agents/codex",
+              "integrations/coding-agents/opencode",
+              "integrations/coding-agents/kilocode"
+            ]
+          },
+          {
+            "group": "Personal Agents",
+            "pages": [
+              "integrations/personal-agents/openclaw",
+              "integrations/personal-agents/hermes"
+            ]
+          },
+          {
+            "group": "Managed Agents",
+            "pages": ["integrations/managed-agents/claude-managed-agents"]
+          },
+          {
+            "group": "Agent Harnesses",
+            "pages": [
+              "integrations/agent-harnesses/claude-agent-sdk",
+              "integrations/agent-harnesses/openai-agents-sdk"
             ]
           }
         ]

@@ -31,34 +31,42 @@ const EXEMPT_PATHS = new Set([
 const OP_RE = new RegExp(`^(${HTTP_METHODS.join("|")})\\s+/`)
 
 type DocsConfig = {
-  navigation: {
-    tabs: Array<{
-      tab: string
-      openapi?: string
-      groups?: Array<{ pages: unknown[] }>
-    }>
-  }
+  navigation: unknown
 }
 
+// Walks the whole navigation tree so the check works regardless of which
+// division type (tab, anchor, dropdown, group, ...) carries the `openapi`
+// field and the endpoint entries.
 function navOpsFromDocs(docs: DocsConfig): {
   ops: Set<string>
   specUrl: string
 } {
-  const apiTab = docs.navigation?.tabs?.find(
-    (t) => typeof t.openapi === "string",
-  )
-  if (!apiTab?.openapi) {
-    throw new Error("no tab with an `openapi` field found in docs.json")
-  }
   const ops = new Set<string>()
-  for (const group of apiTab.groups ?? []) {
-    for (const page of group.pages ?? []) {
-      if (typeof page === "string" && OP_RE.test(page)) {
-        ops.add(page.replace(/\s+/g, " ").trim())
-      }
+  const specUrls = new Set<string>()
+
+  function walk(node: unknown): void {
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item)
+      return
     }
+    if (!node || typeof node !== "object") {
+      if (typeof node === "string" && OP_RE.test(node)) {
+        ops.add(node.replace(/\s+/g, " ").trim())
+      }
+      return
+    }
+    const record = node as Record<string, unknown>
+    if (typeof record.openapi === "string") specUrls.add(record.openapi)
+    for (const value of Object.values(record)) walk(value)
   }
-  return { ops, specUrl: apiTab.openapi }
+
+  walk(docs.navigation)
+  if (specUrls.size !== 1) {
+    throw new Error(
+      `expected exactly one distinct \`openapi\` spec URL in docs.json navigation, found ${specUrls.size}`,
+    )
+  }
+  return { ops, specUrl: [...specUrls][0] }
 }
 
 function specOps(spec: unknown): Set<string> {
