@@ -87,6 +87,14 @@ describe("resolveConfig", () => {
     expect(cfg.sandboxHost).toBe("staging-sandbox.superserve.ai")
   })
 
+  it("derives sandboxHost for an explicit usw base URL", () => {
+    const cfg = resolveConfig({
+      apiKey: "k",
+      baseUrl: "https://api-usw.superserve.ai",
+    })
+    expect(cfg.sandboxHost).toBe("usw-sandbox.superserve.ai")
+  })
+
   it("derives sandboxHost falls back to default for unknown URL", () => {
     const cfg = resolveConfig({
       apiKey: "k",
@@ -101,9 +109,15 @@ describe("resolveConfig", () => {
     expect(cfg.sandboxHost).toBe("sandbox.superserve.ai")
   })
 
-  it("falls back to defaults for an unknown region", () => {
-    // `usw` won't enter the known-regions map until its DNS is live.
+  it("derives endpoints from the usw region key", () => {
     const cfg = resolveConfig({ apiKey: `ss_live_usw_${TAIL}` })
+    expect(cfg.baseUrl).toBe("https://api-usw.superserve.ai")
+    expect(cfg.sandboxHost).toBe("usw-sandbox.superserve.ai")
+  })
+
+  it("falls back to defaults for an unconfigured region", () => {
+    // A syntactically valid region token that isn't in KNOWN_REGIONS.
+    const cfg = resolveConfig({ apiKey: `ss_live_apac_${TAIL}` })
     expect(cfg.baseUrl).toBe("https://api.superserve.ai")
     expect(cfg.sandboxHost).toBe("sandbox.superserve.ai")
   })
@@ -157,6 +171,19 @@ describe("resolveConfig", () => {
     vi.stubEnv("SUPERSERVE_BASE_URL", "https://env.example.com")
     const cfg = resolveConfig({ apiKey: `ss_live_use_${TAIL}` })
     expect(cfg.baseUrl).toBe("https://env.example.com")
+  })
+
+  it("treats an empty/whitespace SUPERSERVE_BASE_URL as unset (region still wins)", () => {
+    vi.stubEnv("SUPERSERVE_BASE_URL", "   ")
+    const cfg = resolveConfig({ apiKey: `ss_live_usw_${TAIL}` })
+    expect(cfg.baseUrl).toBe("https://api-usw.superserve.ai")
+    expect(cfg.sandboxHost).toBe("usw-sandbox.superserve.ai")
+  })
+
+  it("treats an explicit empty baseUrl option as unset", () => {
+    const cfg = resolveConfig({ apiKey: `ss_live_use_${TAIL}`, baseUrl: "" })
+    expect(cfg.baseUrl).toBe("https://api.superserve.ai")
+    expect(cfg.sandboxHost).toBe("sandbox.superserve.ai")
   })
 
   it("derives endpoints from a region key sourced from SUPERSERVE_API_KEY", () => {
