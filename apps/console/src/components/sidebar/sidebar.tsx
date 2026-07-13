@@ -12,9 +12,14 @@ import {
 import Image from "next/image"
 
 import { useUser } from "@/hooks/use-user"
-import { canViewOtherUsersAccount } from "@/lib/admin/permissions"
+import {
+  canReadPlatformTeams,
+  canReadPlatformTemplates,
+  canViewOtherUsersAccount,
+} from "@/lib/admin/permissions"
 
 import {
+  adminNavItem,
   bottomNavItems,
   mainNavItems,
   userManagementNavItem,
@@ -34,7 +39,13 @@ export function Sidebar() {
   const { isCollapsed, toggle } = useSidebar()
   const { user } = useUser()
   const navItems = [
-    ...mainNavItems,
+    ...mainNavItems.filter((item) => {
+      if (item.href === "/templates") {
+        return canReadPlatformTemplates(user)
+      }
+      return true
+    }),
+    ...(canReadPlatformTeams(user) ? [adminNavItem] : []),
     ...(canViewOtherUsersAccount(user) ? [userManagementNavItem] : []),
   ]
 

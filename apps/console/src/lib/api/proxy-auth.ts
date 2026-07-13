@@ -3,6 +3,13 @@ import crypto from "node:crypto"
 import type { User } from "@supabase/supabase-js"
 
 import {
+  type ImpersonationDisplayContext,
+  getImpersonationTeamId,
+  impersonationTtlMs,
+} from "@/lib/admin/impersonation"
+import { ensureImpersonationKeyRow } from "@/lib/admin/impersonation-key"
+import { platformImpersonationReadScopes } from "@/lib/admin/permissions"
+import {
   pickActiveTeam,
   readTeamSelection,
   serializeTeamSelection,
@@ -11,6 +18,7 @@ import { getProxySecret, hashKey } from "@/lib/api/proxy-secret"
 import {
   invalidateMembershipDirectory,
   listTeamMembershipsForUser,
+  findTeamById,
   type TeamMembership,
 } from "@/lib/api/team-directory"
 import { provisionTeam } from "@/lib/api/team-provisioning"
@@ -177,8 +185,46 @@ async function ensureProxyKeyRow(
 
 export async function getAuthApiKeyForUser(
   user: User | null,
+  impersonatedTarget?:
+    | string
+    | Pick<ImpersonationDisplayContext, "teamId" | "region">
+    | null,
 ): Promise<string | null> {
   if (!user) return null
+
+  let teamId: string | null
+  let region: string | null = null
+
+  if (impersonatedTarget === undefined) {
+    teamId = await getImpersonationTeamId(user)
+  } else if (typeof impersonatedTarget === "string") {
+    teamId = impersonatedTarget
+  } else if (impersonatedTarget) {
+    teamId = impersonatedTarget.teamId
+    region = impersonatedTarget.region
+  } else {
+    teamId = null
+  }
+
+  if (teamId) {
+    const scopes = platformImpersonationReadScopes(user)
+    if (scopes.length === 0) {
+      throw new Error(
+        "Forbidden: impersonation requires platform sandbox or template read access",
+      )
+    }
+
+    const targetRegion =
+      region ?? (await findTeamById(teamId))?.region ?? DEFAULT_REGION
+
+    return ensureImpersonationKeyRow(
+      user.id,
+      teamId,
+      targetRegion,
+      scopes,
+      Math.floor(impersonationTtlMs() / 60_000),
+    )
+  }
 
   const team = await getTeamForUser(user.id, user.email ?? user.id)
   const rawKey = deriveRawKey(user.id, team.teamId)

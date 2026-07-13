@@ -18,8 +18,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(),
 }))
+vi.mock("@/lib/admin/permissions", () => ({
+  platformImpersonationReadScopes: vi.fn(),
+}))
+vi.mock("@/lib/admin/impersonation-key", () => ({
+  ensureImpersonationKeyRow: vi.fn(),
+}))
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: vi.fn(),
+}))
+vi.mock("@/lib/admin/impersonation", () => ({
+  getImpersonationTeamId: vi.fn(),
+  impersonationTtlMs: vi.fn(() => 30 * 60_000),
 }))
 
 // No cookie set: active-team resolution falls back to the first membership.
@@ -33,6 +43,7 @@ vi.mock("@/lib/api/team-directory", () => ({
     { teamId: "team-west", region: "usw" },
   ]),
   invalidateMembershipDirectory: vi.fn(),
+  findTeamById: vi.fn(async () => ({ region: "use" })),
 }))
 
 // A user with no membership is provisioned a full team via this helper; the
@@ -83,6 +94,8 @@ vi.mock("@/lib/cells", () => ({
   }),
 }))
 
+import { ensureImpersonationKeyRow } from "@/lib/admin/impersonation-key"
+import { platformImpersonationReadScopes } from "@/lib/admin/permissions"
 import { listTeamMembershipsForUser } from "@/lib/api/team-directory"
 import { provisionTeam } from "@/lib/api/team-provisioning"
 
@@ -121,6 +134,10 @@ describe("proxy-auth.deriveRawKey", () => {
   beforeEach(() => {
     process.env.CONSOLE_PROXY_SECRET =
       "test-secret-must-be-at-least-thirty-two-chars-long-abcdef"
+    vi.mocked(platformImpersonationReadScopes).mockReturnValue([])
+    vi.mocked(ensureImpersonationKeyRow).mockResolvedValue(
+      "ss_live_impersonation",
+    )
   })
 
   it("is deterministic: same user and team always return the same key", () => {
@@ -236,5 +253,71 @@ describe("proxy-auth new-user provisioning", () => {
         created_by: "brand-new",
       },
     ])
+  })
+})
+
+describe("proxy-auth impersonation", () => {
+  beforeEach(() => {
+    vi.mocked(platformImpersonationReadScopes).mockReset()
+    vi.mocked(ensureImpersonationKeyRow).mockReset()
+  })
+
+  it("mints an impersonation key with the canonical read scopes", async () => {
+    vi.mocked(platformImpersonationReadScopes).mockReturnValue([
+      "platform:sandbox:read",
+      "platform:template:read",
+    ])
+    vi.mocked(ensureImpersonationKeyRow).mockResolvedValue(
+      "ss_live_impersonation",
+    )
+
+    const key = await getAuthApiKeyForUser(
+      { id: "admin", email: "admin@superserve.ai" } as never,
+      "team-1",
+    )
+
+    expect(key).toBe("ss_live_impersonation")
+    expect(ensureImpersonationKeyRow).toHaveBeenCalledWith(
+      "admin",
+      "team-1",
+      "use",
+      ["platform:sandbox:read", "platform:template:read"],
+      expect.any(Number),
+    )
+  })
+
+  it("uses the impersonation region without re-resolving it", async () => {
+    vi.mocked(platformImpersonationReadScopes).mockReturnValue([
+      "platform:sandbox:read",
+    ])
+
+    await getAuthApiKeyForUser(
+      { id: "admin", email: "admin@superserve.ai" } as never,
+      {
+        teamId: "team-1",
+        region: "usw",
+      },
+    )
+
+    expect(ensureImpersonationKeyRow).toHaveBeenCalledWith(
+      "admin",
+      "team-1",
+      "usw",
+      ["platform:sandbox:read"],
+      expect.any(Number),
+    )
+  })
+
+  it("rejects impersonation when no supported scopes are available", async () => {
+    vi.mocked(platformImpersonationReadScopes).mockReturnValue([])
+
+    await expect(
+      getAuthApiKeyForUser(
+        { id: "admin", email: "admin@superserve.ai" } as never,
+        "team-1",
+      ),
+    ).rejects.toThrow(
+      /impersonation requires platform sandbox or template read access/,
+    )
   })
 })
