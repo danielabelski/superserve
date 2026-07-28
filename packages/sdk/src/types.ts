@@ -159,6 +159,14 @@ export interface CommandResult {
   stdout: string
   stderr: string
   exitCode: number
+  /**
+   * True when the server dropped the tail of a non-streaming run's output
+   * because combined stdout/stderr exceeded its retention cap (a notice is
+   * also appended to `stderr`). Stream via `onStdout`/`onStderr`, or redirect
+   * to a file inside the sandbox, for unbounded output. Always false for
+   * streamed runs.
+   */
+  truncated: boolean
 }
 
 export interface CommandOptions {
@@ -263,6 +271,7 @@ export interface ApiExecResult {
   stdout?: string
   stderr?: string
   exit_code?: number
+  truncated?: boolean
 }
 
 /** @internal */
