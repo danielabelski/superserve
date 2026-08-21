@@ -101,9 +101,9 @@ sandbox = Sandbox.connect("7a3f2b8c-1234-...")
 
 ### `Sandbox.list`
 
-List sandboxes on the authenticated team. `metadata` filters combine with AND.
-`status` filters to one lifecycle state, and `limit`/`offset` page through the
-list.
+List sandboxes on the authenticated team. `metadata` returns only sandboxes
+matching every key-value pair you pass; `status` filters to one lifecycle
+state; `limit`/`offset` page through the list.
 
 <CodeGroup>
 ```typescript TypeScript
@@ -393,11 +393,11 @@ class SandboxStatus(str, Enum):
 
 </CodeGroup>
 
-- `starting` - transient, briefly visible while a new sandbox boots
+- `starting` - a new sandbox is booting
 - `active` - running and ready to accept commands
-- `pausing` - transient, briefly visible while a pause is in progress
+- `pausing` - a pause is in progress
 - `paused` - stopped with state saved to disk
-- `resuming` - transient, briefly visible while a paused sandbox is being restored to `active`
+- `resuming` - a paused sandbox is being restored
 - `failed` - the sandbox couldn't boot or resume; the entry remains until you delete it
 - `deleted` - removed; deleted sandboxes do not appear in list results
 
