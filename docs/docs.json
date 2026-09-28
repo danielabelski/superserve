@@ -78,6 +78,7 @@
               "sandbox/create",
               "sandbox/connect",
               "sandbox/lifecycle",
+              "sandbox/snapshots",
               "sandbox/metadata",
               "sandbox/networking",
               "sandbox/preview-urls",
@@ -134,6 +135,7 @@
             "pages": [
               "sdk-reference/sandbox",
               "sdk-reference/secret",
+              "sdk-reference/snapshot",
               "sdk-reference/template",
               "sdk-reference/commands",
               "sdk-reference/files"
