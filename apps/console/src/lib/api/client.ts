@@ -42,14 +42,15 @@ function normalizePath(path: string): string {
 }
 
 /**
- * Runs a request against the console API proxy with a 30s timeout and unified
- * error handling, then hands the successful Response to `read`. The reader runs
+ * Runs a request against the console API proxy with a timeout (30s unless
+ * given) and unified error handling, then hands the successful Response to `read`. The reader runs
  * inside the timeout window so a slow body read still aborts.
  */
 async function request<R>(
   path: string,
   options: RequestInit,
   read: (response: Response) => Promise<R>,
+  timeoutMs = 30_000,
 ): Promise<R> {
   const url = `${getBaseUrl()}${normalizePath(path)}`
 
@@ -63,7 +64,7 @@ async function request<R>(
   }
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(url, {
@@ -102,13 +103,19 @@ async function request<R>(
 export async function apiClient<T>(
   path: string,
   options: RequestInit = {},
+  timeoutMs?: number,
 ): Promise<T> {
-  return request(path, options, async (response) => {
-    if (response.status === 204) {
-      return undefined as T
-    }
-    return response.json() as Promise<T>
-  })
+  return request(
+    path,
+    options,
+    async (response) => {
+      if (response.status === 204) {
+        return undefined as T
+      }
+      return response.json() as Promise<T>
+    },
+    timeoutMs,
+  )
 }
 
 /**

@@ -116,6 +116,19 @@ describe("api proxy /api/[...path]", () => {
     expect(res.status).toBe(404)
   })
 
+  it("forwards the snapshots prefix", async () => {
+    fetchSpy.mockResolvedValue(new Response("{}", { status: 200 }))
+
+    const path = ["snapshots", "snap-1"]
+    const res = await GET(req("GET", path), params(path))
+
+    expect(res.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.test.superserve.ai/snapshots/snap-1",
+      expect.objectContaining({ method: "GET" }),
+    )
+  })
+
   it.each([
     ["v1/..%2Fstripe%2Fcheckout-session", ["v1", "../stripe/checkout-session"]],
     [

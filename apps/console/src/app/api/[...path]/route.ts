@@ -30,6 +30,7 @@ const ALLOWED_PREFIXES = [
   "v1",
   "templates",
   "secrets",
+  "snapshots",
   "providers",
   "billing/summary",
   "billing/usage-series",
